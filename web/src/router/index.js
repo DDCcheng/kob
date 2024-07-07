@@ -1,8 +1,46 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
+import PkindexView from '../views/PK/PkindexView'
+import RanklistindexView from '../views/RankingList/RanklistindexView'
+import UserBotindexView from '../views/User/bots/UserBotindexView'
+import NotFound from '../views/error/NotFound'
+import FightlistindexView from '../views/FightList/FightlistindexView';
 
 const routes = [
- 
+  {
+    path:"/pk/",
+    name:"pk_index",
+    component:PkindexView,
+  },
+  {
+    path:"/fightlist/",
+    name:"fightlist_index",
+    component:FightlistindexView,
+  },
+  {
+    path:"/ranklist/",
+    name:"ranklist_index",
+    component:RanklistindexView,
+  },
+  {
+    path:"/user/bot/",
+    name:"userbot_index",
+    component:UserBotindexView,
+  },
+  {
+    path:"/404/",
+    name:"404",
+    component:NotFound,
+  },
+  {
+    path:"/",
+    name:"home",
+    redirect:"/pk/"
+  },
+  {
+    path:"/:catchAll(.*)",
+    redirect:"/404/",
+    name:"error"
+  }
 ]
 
 const router = createRouter({
