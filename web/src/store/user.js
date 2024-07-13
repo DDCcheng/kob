@@ -9,7 +9,8 @@ export default{
         username:"",
         photo:"",
         token:"",
-        is_login:false
+        is_login:false,
+        loading_info:true,//是否正在加载信息
     },
     getters: {
     },
@@ -29,6 +30,9 @@ export default{
             state.id="",
             state.photo="",
             state.is_login=false
+        },
+        update_loadinginfo(state,loading_info){
+            state.loading_info=loading_info
         }
     },
     actions: {
@@ -42,8 +46,9 @@ export default{
                 },
                 success(res){
                     if(res.error_message==="success"){
+                        localStorage.setItem("jwt_token",res.token)
                         context.commit("updateToken",res.token);
-                        context.state.is_login=true;
+                        context.state.is_login=true;    
                         data.success()
                     }
                 },
@@ -63,9 +68,10 @@ export default{
                     if(resp.error_message==="SUCCESS"){
                         context.commit("updateUser",{
                             ...resp,
-                            is_login:true
+                            // is_login:true,//不起作用，y总的不知道为什么起作用了
                         }),
-                        data.success(resp);
+                        context.state.is_login=true;    
+                        data.success();
                     }         
                 },
                 error(resp){
@@ -75,7 +81,9 @@ export default{
         },
         logout(context){
             context.commit("logout");
-        }
+            localStorage.removeItem("jwt_token")
+        },
+        
 
     },
     modules: {

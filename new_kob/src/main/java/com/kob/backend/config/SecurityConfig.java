@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 基于token，不需要session
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/user/account/token/", "/user/account/register/").permitAll() // 放行api
+                        .requestMatchers("/user/account/token/", "/user/account/register/").permitAll() // 放行api,不需要加表头，其他都需要加表头
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);

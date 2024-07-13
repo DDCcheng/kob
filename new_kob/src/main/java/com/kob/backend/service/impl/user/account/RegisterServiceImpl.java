@@ -42,6 +42,7 @@ public class RegisterServiceImpl implements RegisterService {
         }
         if(password.length()==0 || confirmPassword.length()==0){
             map.put("error_message","密码长度不能为空");
+            return map;
         }
         if (username.length()>100){
             map.put("error_message","用户名长度超出100");
@@ -67,7 +68,8 @@ public class RegisterServiceImpl implements RegisterService {
         String photo="https://cdn.acwing.com/media/user/profile/photo/152683_lg_f292f369c2.jpeg";
         User user = new User(null,username,salt,photo);
         userMapper.insert(user);
-        map.put("error_message","SUCCESS");
+        map.put("error_message","SUCCES" +
+                "S");
         return map;
     }
 }
