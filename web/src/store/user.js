@@ -1,8 +1,4 @@
 import $ from "jquery"
-
-
-
-
 export default{
     state: {
         id:"",
@@ -38,28 +34,28 @@ export default{
     actions: {
         login(context,data){
             $.ajax({
-                url:"http://localhost:3000/user/account/token/",
+                url:"http://10.14.17.223:3000/user/account/token/",
                 type:"post",
                 data: {
                   username:data.username,
                   password:data.password,
                 },
                 success(res){
-                    if(res.error_message==="success"){
+                    if(res.error_message==="SUCCESS"){
                         localStorage.setItem("jwt_token",res.token)
                         context.commit("updateToken",res.token);
                         context.state.is_login=true;    
                         data.success()
                     }
                 },
-                error(){
-                    data.error();
+                error(resp){
+                    data.error(resp);
                 }
               })
         },
         getinfo(context,data){
             $.ajax({
-                url:"http://localhost:3000/user/account/info/",
+                url:"http://10.14.17.223:3000/user/account/info/",
                 type:"get",
                 headers:{
                         Authorization:"Bearer " + context.state.token,
@@ -74,8 +70,8 @@ export default{
                         data.success();
                     }         
                 },
-                error(resp){
-                        data.error(resp);
+                error(){
+                        data.error();
                 }
             })
         },
