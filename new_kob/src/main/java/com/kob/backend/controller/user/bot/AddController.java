@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-@CrossOrigin(origins = "http://10.14.17.223:8080")
+@CrossOrigin(origins = "http://localhost:8080")
 @RestController
 public class AddController {
 

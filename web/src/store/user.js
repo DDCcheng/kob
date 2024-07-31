@@ -34,7 +34,7 @@ export default{
     actions: {
         login(context,data){
             $.ajax({
-                url:"http://10.14.17.223:3000/user/account/token/",
+                url:"http://localhost:3000/user/account/token/",
                 type:"post",
                 data: {
                   username:data.username,
@@ -55,7 +55,7 @@ export default{
         },
         getinfo(context,data){
             $.ajax({
-                url:"http://10.14.17.223:3000/user/account/info/",
+                url:"http://localhost:3000/user/account/info/",
                 type:"get",
                 headers:{
                         Authorization:"Bearer " + context.state.token,
@@ -70,9 +70,6 @@ export default{
                         data.success();
                     }         
                 },
-                error(){
-                        data.error();
-                }
             })
         },
         logout(context){

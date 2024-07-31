@@ -26,7 +26,7 @@ public class InfoServiceImpl implements InfoService {
             UserDetailsImpl userInfo = (UserDetailsImpl) authenticationToken.getPrincipal();
             User user = userInfo.getUser();
             map.put("error_message", "SUCCESS");
-            map.put("userId", user.getId().toString());
+            map.put("id", user.getId().toString());
             map.put("username", user.getUsername());
             map.put("photo", user.getPhoto());
         } else if (authentication instanceof AnonymousAuthenticationToken) {
