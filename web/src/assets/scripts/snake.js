@@ -56,10 +56,6 @@ export class Snake extends AcGameObject{
         for(let i=k;i>0;i--){
             this.cells[i]=JSON.parse(JSON.stringify(this.cells[i-1]));
         }
-
-        if(!this.gamemap.check_valid(this.next_cell)){//下一步操作撞了
-            this.status="die";
-        }
     }
 
     update_move(){//开始移动
@@ -74,7 +70,7 @@ export class Snake extends AcGameObject{
 
             if(!this.check_tail_increasing()){
                 this.cells.pop();
-            }
+            }   
         }
         else{
             const move_distance=this.speed*this.timedelta/1000;//每一帧走过的距离
