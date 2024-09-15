@@ -157,7 +157,7 @@ public class Game extends Thread {
         return sb.toString();
     }
 
-    private void SaveToDatabase() {
+    private void SaveToDatabase() {//存储对局
         Record record=new Record(
                 null,
                 playerA.getId(),
@@ -221,8 +221,13 @@ public class Game extends Thread {
     }
 
     private void sendAllMessage(String msg){
-        WebSocketServer.users.get(playerA.getId()).sendMessage(msg);
-        WebSocketServer.users.get(playerB.getId()).sendMessage(msg);
+        if(WebSocketServer.users.get(playerA.getId())!=null){
+            WebSocketServer.users.get(playerA.getId()).sendMessage(msg);
+        }
+        if(WebSocketServer.users.get(playerB.getId())!=null){
+            WebSocketServer.users.get(playerB.getId()).sendMessage(msg);
+        }
+
     }
 
     private void sendMove(){//向两个client传递移动信息
