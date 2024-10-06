@@ -10,13 +10,17 @@ export class Snake extends AcGameObject{
         
         this.next_cell=null;//下一步目标位置
         this.cells=[new cell(info.r,info.c)];//存放蛇的身体，cell[0]放蛇头
+
         this.speed=5;
         this.direction=-1;//-1表示没有指令，0，1，2，3表示上右下左
         this.status="idle"//"idel"表示静止，"move"表示动,"die"表示死亡
+
         this.dr=[-1,0,1,0];
         this.dc=[0,1,0,-1];
+
         this.steps=0;//表示回合数
         this.eps=1e-2;//误差范围
+
         this.eye_direction=0;
         if(this.id===1) this.eye_direction=2;
 
@@ -31,7 +35,7 @@ export class Snake extends AcGameObject{
             [-1,-1],
             [-1,1],
             [1,1],
-            [-1,1]
+            [1,-1]
         ]
     }
 
@@ -126,10 +130,11 @@ export class Snake extends AcGameObject{
 
 
     update(){
-        this.render();
         if(this.status==='move'){//每一帧执行一次
             this.update_move();
         }
+        
+        this.render();
     }
 
     start(){

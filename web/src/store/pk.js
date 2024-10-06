@@ -5,7 +5,7 @@ export default{
         socket:null,
         opponent_username:"",
         opponent_photo:"",
-        gameMap:null,
+        gamemap:null,
         a_id:0,
         a_sx:0,
         a_sy:0,
@@ -29,7 +29,7 @@ export default{
             state.status=status;
         },
         updateGame(state,game){
-            state.gameMap=game.map;
+            state.gamemap=game.map;
             state.a_id=game.a_id;
             state.a_sx=game.a_sx;
             state.a_sy=game.a_sy;

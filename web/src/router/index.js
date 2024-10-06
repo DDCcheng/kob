@@ -3,7 +3,8 @@ import PkindexView from '../views/PK/PkindexView'
 import RanklistindexView from '../views/RankingList/RanklistindexView'
 import UserBotindexView from '../views/User/bots/UserBotindexView'
 import NotFound from '../views/error/NotFound'
-import FightlistindexView from '../views/FightList/FightlistindexView';
+import RecordindexView from '../views/record/RecordindexView.vue';
+import RecordContentView from '@/views/record/RecordContentView.vue'
 import UserAccountLoginView from '@/views/User/account/UserAccountLoginView'
 import UserRegisterView from '@/views/User/account/UserRegisterView'
 import store from '@/store'
@@ -19,9 +20,17 @@ const routes = [
     }
   },
   {
-    path:"/fightlist/",
-    name:"fightlist_index",
-    component:FightlistindexView,
+    path:"/record/",
+    name:"record_index",
+    component:RecordindexView,
+    meta:{
+      requestAuth:true
+    }
+  },
+  {
+    path:"/record/:recordId/",
+    name:"record_content",
+    component:RecordContentView,
     meta:{
       requestAuth:true
     }
@@ -79,6 +88,7 @@ const routes = [
     redirect:"/404/",
     name:"error"
   },
+  
 ] 
 
 const router = createRouter({

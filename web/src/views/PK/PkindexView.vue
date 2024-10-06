@@ -21,6 +21,8 @@ export default {
         const socket_url= `ws://localhost:3000/websocket/${store.state.user.token}/`;
 
         store.commit("updateLoser","none")
+        store.commit("updateIsRecord",false);
+
 
         let socket=null;
         onMounted(()=>{
@@ -55,14 +57,14 @@ export default {
                     console.log(data);
                     const game=store.state.pk.gameObject;
                     const [snake0,snake1]=game.snakes;
-                    store.commit("updateLoser",data.loser);
                     if(data.loser==="all" ||data.loser==="A"){
                         snake0.status="die";
                     }
                     if(data.loser==="all" ||data.loser==="B"){
                         snake1.status="die";
                     }
- 
+                    store.commit("updateLoser",data.loser);
+
                 }
             }
             socket.onclose=()=>{
