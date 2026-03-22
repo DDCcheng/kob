@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import PkindexView from '../views/PK/PkindexView'
-import RanklistindexView from '../views/RankingList/RanklistindexView'
-import UserBotindexView from '../views/User/bots/UserBotindexView'
-import NotFound from '../views/error/NotFound'
+import PkindexView from '../views/PK/PkindexView.vue'
+import RanklistindexView from '../views/RankingList/RanklistindexView.vue'
+import UserBotindexView from '../views/User/bots/UserBotindexView.vue'
+import NotFound from '../views/error/NotFound.vue'
 import RecordindexView from '../views/record/RecordindexView.vue';
 import RecordContentView from '@/views/record/RecordContentView.vue'
-import UserAccountLoginView from '@/views/User/account/UserAccountLoginView'
-import UserRegisterView from '@/views/User/account/UserRegisterView'
+import UserAccountLoginView from '@/views/User/account/UserAccountLoginView.vue'
+import UserRegisterView from '@/views/User/account/UserRegisterView.vue'
 import store from '@/store'
 
 

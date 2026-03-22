@@ -24,61 +24,49 @@
 </template>
 <script>
 import ContentField from '@/components/ContentField.vue'
-import {ref} from 'vue'
-// import { useStore } from "vuex";
+import { ref } from 'vue'
 import router from '@/router/index'
-import $ from "jquery"
 
 export default {
-    components:{
+    components: {
         ContentField
     },
+    setup() {
+        let username = ref('');
+        let password = ref('');
+        let confirmPassword = ref('');
+        let error_message = ref('');
 
-    setup(){
-        let username=ref('');
-        let password=ref('');
-        let confirmPassword=ref('');
-        let error_message=ref('');
+        const register = () => {
+            const body = new URLSearchParams();
+            body.append("username", username.value);
+            body.append("password", password.value);
+            body.append("confirmPassword", confirmPassword.value);
 
-
-        const register=()=>{
-            $.ajax({
-                url:"http://localhost:3000/user/account/register/",
-                type:"post",
-                data: {
-                  username:username.value,
-                  password:password.value,
-                  confirmPassword:confirmPassword.value,
-                },
-                success(res){
-                    if(res.error_message==="SUCCESS"){  
-                        router.push({name:"user_account_login"})
-                    }else{
-                        error_message.value=res.error_message;
+            fetch("http://localhost:3000/user/account/register/", {
+                method: "POST",
+                body,
+            })
+                .then(resp => resp.json())
+                .then(res => {
+                    if (res.error_message === "SUCCESS") {
+                        router.push({ name: "user_account_login" });
+                    } else {
+                        error_message.value = res.error_message;
                     }
-                },
-              })
-
+                });
         }
 
-        return {
-            username,
-            password,
-            confirmPassword,
-            error_message,
-            register,
-        }
+        return { username, password, confirmPassword, error_message, register }
+    }
 }
-}
-
-
 </script>
 
 <style scoped>
-button{
+button {
     width: 100%;
 }
-div.error_message{
+div.error_message {
     color: red;
 }
 </style>
