@@ -3,10 +3,10 @@
         <div class="row">
             <div class="col-4">
                 <div class="user-photo">
-                    <img :src="$store.state.user.photo">
+                    <img :src="userStore.photo">
                 </div>
                 <div class="user-username">
-                    {{ $store.state.user.username }}
+                    {{ userStore.username }}
                 </div>
             </div>
             <div class="col-4">
@@ -19,10 +19,10 @@
             </div>
             <div class="col-4">
                 <div class="user-photo">
-                    <img :src="$store.state.pk.opponent_photo" alt="">
+                    <img :src="pkStore.opponent_photo" alt="">
                 </div>
                 <div class="user-username">
-                    {{ $store.state.pk.opponent_username }}
+                    {{ pkStore.opponent_username }}
                 </div>
             </div>
             <div class="col-12" style="text-align: center; padding-top: 15vh;">
@@ -34,11 +34,13 @@
 
 <script>
 import { ref } from 'vue'
-import { useStore } from 'vuex'
+import { useUserStore } from '@/store/user'
+import { usePkStore } from '@/store/pk'
 
 export default {
     setup() {
-        const store = useStore();
+        const userStore = useUserStore();
+        const pkStore = usePkStore();
         let match_btn_content = ref("开始匹配");
         let bots = ref([]);
         let select_bot = ref("-1");
@@ -46,31 +48,24 @@ export default {
         const click_match = () => {
             if (match_btn_content.value === "开始匹配") {
                 match_btn_content.value = "取消";
-                store.state.pk.socket.send(JSON.stringify({
-                    event: "start-matching",
-                    bot_id: select_bot.value
-                }));
+                pkStore.socket.send(JSON.stringify({ event: "start-matching", bot_id: select_bot.value }));
             } else {
                 match_btn_content.value = "开始匹配";
-                store.state.pk.socket.send(JSON.stringify({ event: "stop-matching" }));
-                store.commit("updateOpponent", {
+                pkStore.socket.send(JSON.stringify({ event: "stop-matching" }));
+                pkStore.updateOpponent({
                     username: "我的对手",
                     photo: "https://cdn.acwing.com/media/article/image/2022/08/09/1_1db2488f17-anonymous.png"
                 });
             }
         }
 
-        const refresh_bots = () => {
-            fetch("http://localhost:3000/user/bot/getlist/", {
-                headers: { Authorization: "Bearer " + store.state.user.token }
-            })
-                .then(resp => resp.json())
-                .then(res => { bots.value = res; });
-        }
+        fetch("http://localhost:3000/user/bot/getlist/", {
+            headers: { Authorization: "Bearer " + userStore.token }
+        })
+            .then(resp => resp.json())
+            .then(res => { bots.value = res; });
 
-        refresh_bots();
-
-        return { match_btn_content, click_match, bots, select_bot }
+        return { userStore, pkStore, match_btn_content, click_match, bots, select_bot }
     }
 }
 </script>

@@ -7,7 +7,7 @@ import RecordindexView from '../views/record/RecordindexView.vue';
 import RecordContentView from '@/views/record/RecordContentView.vue'
 import UserAccountLoginView from '@/views/User/account/UserAccountLoginView.vue'
 import UserRegisterView from '@/views/User/account/UserRegisterView.vue'
-import store from '@/store'
+import { useUserStore } from '@/store/user'
 
 
 const routes = [
@@ -47,7 +47,7 @@ const routes = [
     path:"/user/bot/",
     name:"userbot_index",
     component:UserBotindexView,
-    meta:{  
+    meta:{
       requestAuth:true
     }
   },
@@ -88,21 +88,21 @@ const routes = [
     redirect:"/404/",
     name:"error"
   },
-  
-] 
+
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
 })
 
-router.beforeEach((to,from,next)=>{
-  if(to.meta.requestAuth&&!store.state.user.is_login){
-    next({  name:"user_account_login"});
-  }else{
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore();
+  if (to.meta.requestAuth && !userStore.is_login) {
+    next({ name: "user_account_login" });
+  } else {
     next();
   }
-
 })
 
 export default router

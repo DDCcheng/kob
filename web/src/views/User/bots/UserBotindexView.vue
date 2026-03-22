@@ -4,7 +4,7 @@
             <div class="col-3">
                 <div class="card" style="margin-top: 20px;">
                     <div class="card-body">
-                        <img :src="$store.state.user.photo" alt="" style="width: 100%;">
+                        <img :src="userStore.photo" alt="" style="width: 100%;">
                     </div>
                 </div>
             </div>
@@ -135,7 +135,7 @@
 
 <script>
 import { ref, reactive } from 'vue';
-import { useStore } from "vuex";
+import { useUserStore } from '@/store/user'
 import { Modal } from 'bootstrap';
 import { VAceEditor } from 'vue3-ace-editor';
 import ace from 'ace-builds';
@@ -150,22 +150,21 @@ export default {
         ace.config.set("basePath",
             "https://cdn.jsdelivr.net/npm/ace-builds@" + ace.version + "/src-noconflict/");
 
-        const store = useStore();
+        const userStore = useUserStore();
         let bots = ref([]);
 
         const botadd = reactive({
-            title: "",
-            description: "",
-            content: "",
-            error_message: ""
+            title: "", description: "", content: "", error_message: ""
         });
 
-        const authHeader = () => ({ Authorization: "Bearer " + store.state.user.token });
+        const authHeader = () => ({ Authorization: "Bearer " + userStore.token });
+
         const refresh_bots = () => {
             fetch("http://localhost:3000/user/bot/getlist/", { headers: authHeader() })
                 .then(resp => resp.json())
                 .then(res => { bots.value = res; });
         }
+
         const add_btn = () => {
             botadd.error_message = "";
             const body = new URLSearchParams();
@@ -173,17 +172,11 @@ export default {
             body.append("description", botadd.description);
             body.append("content", botadd.content);
 
-            fetch("http://localhost:3000/user/bot/add/", {
-                method: "POST",
-                headers: authHeader(),
-                body,
-            })
+            fetch("http://localhost:3000/user/bot/add/", { method: "POST", headers: authHeader(), body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {
-                        botadd.title = "";
-                        botadd.content = "";
-                        botadd.description = "";
+                        botadd.title = ""; botadd.content = ""; botadd.description = "";
                         Modal.getInstance("#add_bot_btn").hide();
                         refresh_bots();
                     } else {
@@ -195,19 +188,11 @@ export default {
         const remove_btn = bot => {
             const body = new URLSearchParams();
             body.append("bot_id", bot.id);
-
-            fetch("http://localhost:3000/user/bot/remove/", {
-                method: "POST",
-                headers: authHeader(),
-                body,
-            })
+            fetch("http://localhost:3000/user/bot/remove/", { method: "POST", headers: authHeader(), body })
                 .then(resp => resp.json())
                 .then(res => {
-                    if (res.error_message === "SUCCESS") {
-                        refresh_bots();
-                    } else {
-                        bot.error_message = res.error_message;
-                    }
+                    if (res.error_message === "SUCCESS") refresh_bots();
+                    else bot.error_message = res.error_message;
                 });
         }
 
@@ -218,11 +203,7 @@ export default {
             body.append("description", bot.description);
             body.append("content", bot.content);
 
-            fetch("http://localhost:3000/user/bot/update/", {
-                method: "POST",
-                headers: authHeader(),
-                body,
-            })
+            fetch("http://localhost:3000/user/bot/update/", { method: "POST", headers: authHeader(), body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {
@@ -236,13 +217,11 @@ export default {
 
         refresh_bots();
 
-        return { bots, botadd, add_btn, remove_btn, update_btn }
+        return { userStore, bots, botadd, add_btn, remove_btn, update_btn }
     }
 }
 </script>
 
 <style scoped>
-div.error_message {
-    color: red;
-}
+div.error_message { color: red; }
 </style>

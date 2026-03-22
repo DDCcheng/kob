@@ -48,14 +48,18 @@
 
 <script>
 import ContentField from '../../components/ContentField.vue'
-import { useStore } from 'vuex';
+import { useUserStore } from '@/store/user'
+import { usePkStore } from '@/store/pk'
+import { useRecordStore } from '@/store/record'
 import { ref } from 'vue';
 import router from '../../router/index';
 
 export default {
     components: { ContentField },
     setup() {
-        const store = useStore();
+        const userStore = useUserStore();
+        const pkStore = usePkStore();
+        const recordStore = useRecordStore();
         let records = ref([]);
         let total_records = 0;
         let current_page = 1;
@@ -82,7 +86,7 @@ export default {
         const pull_page = page => {
             current_page = page;
             fetch(`http://localhost:3000/record/getlist/?page=${page}`, {
-                headers: { Authorization: "Bearer " + store.state.user.token }
+                headers: { Authorization: "Bearer " + userStore.token }
             })
                 .then(resp => resp.json())
                 .then(res => {
@@ -110,8 +114,8 @@ export default {
         const open_record_content = recordId => {
             for (const record of records.value) {
                 if (record.record.id === recordId) {
-                    store.commit("updateIsRecord", true);
-                    store.commit("updateGame", {
+                    recordStore.updateIsRecord(true);
+                    pkStore.updateGame({
                         map: stringTo2D(record.record.map),
                         a_id: record.record.aid,
                         a_sx: record.record.asx,
@@ -120,11 +124,8 @@ export default {
                         b_sx: record.record.bsx,
                         b_sy: record.record.bsy
                     });
-                    store.commit("updateSteps", {
-                        a_steps: record.record.asteps,
-                        b_steps: record.record.bsteps,
-                    });
-                    store.commit("updateRecordLoser", record.record.loser);
+                    recordStore.updateSteps({ a_steps: record.record.asteps, b_steps: record.record.bsteps });
+                    recordStore.updateRecordLoser(record.record.loser);
                     router.push({ name: "record_content", params: { recordId } });
                     break;
                 }
@@ -137,8 +138,5 @@ export default {
 </script>
 
 <style scoped>
-img.record-user-photo {
-    width: 4vh;
-    border-radius: 50%;
-}
+img.record-user-photo { width: 4vh; border-radius: 50%; }
 </style>

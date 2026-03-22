@@ -1,51 +1,47 @@
-export default {
-    state: {
+import { defineStore } from 'pinia'
+
+export const useUserStore = defineStore('user', {
+    state: () => ({
         id: "",
         username: "",
         photo: "",
         token: "",
         is_login: false,
         loading_info: true,
-    },
-    getters: {
-    },
-    mutations: {
-        updateUser(state, user) {
-            state.id = user.id;
-            state.username = user.username;
-            state.photo = user.photo;
-            state.is_login = true;
-        },
-        updateToken(state, token) {
-            state.token = token;
-        },
-        logout(state) {
-            state.token = "";
-            state.username = "";
-            state.id = "";
-            state.photo = "";
-            state.is_login = false;
-        },
-        update_loadinginfo(state, loading_info) {
-            state.loading_info = loading_info;
-        }
-    },
+    }),
     actions: {
-        login(context, data) {
+        updateUser(user) {
+            this.id = user.id;
+            this.username = user.username;
+            this.photo = user.photo;
+            this.is_login = true;
+        },
+        updateToken(token) {
+            this.token = token;
+        },
+        update_loadinginfo(loading_info) {
+            this.loading_info = loading_info;
+        },
+        logout() {
+            this.token = "";
+            this.username = "";
+            this.id = "";
+            this.photo = "";
+            this.is_login = false;
+            localStorage.removeItem("jwt_token");
+        },
+        login(data) {
             const body = new URLSearchParams();
             body.append("username", data.username);
             body.append("password", data.password);
 
-            fetch("http://localhost:3000/user/account/token/", {
-                method: "POST",
-                body,
-            })
-                .then(resp => resp.json())
+            fetch("http://localhost:3000/user/account/token/", { method: "POST", body })
+                .then(r => r.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {
                         localStorage.setItem("jwt_token", res.token);
-                        context.commit("updateToken", res.token);
-                        context.state.is_login = true;
+                        this.updateToken(res.token);
+                        this.is_login = true;
                         data.success();
                     } else {
                         data.error();
@@ -53,35 +49,20 @@ export default {
                 })
                 .catch(() => data.error());
         },
-
-        getinfo(context, data) {
+        getinfo(data) {
             fetch("http://localhost:3000/user/account/info/", {
-                headers: {
-                    Authorization: "Bearer " + context.state.token,
-                },
+                headers: { Authorization: "Bearer " + this.token },
             })
-                .then(resp => {
-                    if (!resp.ok) throw new Error();
-                    return resp.json();
-                })
+                .then(r => { if (!r.ok) throw new Error(); return r.json(); })
                 .then(resp => {
                     if (resp.error_message === "SUCCESS") {
-                        context.commit("updateUser", resp);
+                        this.updateUser(resp);
                         if (data && data.success) data.success();
                     } else {
                         if (data && data.error) data.error();
                     }
                 })
-                .catch(() => {
-                    if (data && data.error) data.error();
-                });
+                .catch(() => { if (data && data.error) data.error(); });
         },
-
-        logout(context) {
-            context.commit("logout");
-            localStorage.removeItem("jwt_token");
-        },
-    },
-    modules: {
     }
-}
+})

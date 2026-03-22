@@ -1,5 +1,5 @@
 <template>
-    <ContentField v-if="!$store.state.user.loading_info">
+    <ContentField v-if="!userStore.loading_info">
     <div class="row  justify-content-md-center">
         <div class="col-3">
             <form @submit.prevent="login" >
@@ -21,73 +21,57 @@
 
 <script>
 import ContentField from '@/components/ContentField.vue'
-import { useStore } from "vuex";
-import {ref} from 'vue';
+import { useUserStore } from '@/store/user'
+import { ref } from 'vue';
 import router from '@/router/index'
 export default {
-    components:{
-        ContentField
-    },
+    components:{ ContentField },
     setup(){
-        const store=useStore();
-        let username=ref('');
-        let password=ref('');
-        let error_message=ref('');
+        const userStore = useUserStore();
+        let username = ref('');
+        let password = ref('');
+        let error_message = ref('');
 
-
-        const jwt_token=localStorage.getItem("jwt_token");
-        if(jwt_token){
-            store.commit("updateToken",jwt_token)   
-            store.dispatch("getinfo",{
-                success(){
-                    router.push({name:"home"})
-                    store.commit("update_loadinginfo",false)
+        const jwt_token = localStorage.getItem("jwt_token");
+        if (jwt_token) {
+            userStore.updateToken(jwt_token);
+            userStore.getinfo({
+                success() {
+                    router.push({ name: "home" });
+                    userStore.update_loadinginfo(false);
                 },
-                error(){
-                    store.commit("update_loadinginfo",false)
+                error() {
+                    userStore.update_loadinginfo(false);
                 }
-            })
-        }else{
-            store.commit("update_loadinginfo",false)
+            });
+        } else {
+            userStore.update_loadinginfo(false);
         }
 
-        const login=()=>{
-            error_message.value="",
-            store.dispatch("login",{
-                username:username.value,
-                password:password.value,
-                success(){
-                    store.dispatch("getinfo",{
-                        success(){
-                            router.push({name:"home"})
-                        },           
-                    })
+        const login = () => {
+            error_message.value = "";
+            userStore.login({
+                username: username.value,
+                password: password.value,
+                success() {
+                    userStore.getinfo({
+                        success() {
+                            router.push({ name: "home" });
+                        },
+                    });
                 },
-                error(){
-                    error_message.value="用户名密码不正确";
+                error() {
+                    error_message.value = "用户名密码不正确";
                 }
-            })
-
+            });
         }
 
-        return {
-            username,
-            password,
-            error_message,
-            login,
-          
-        }
-
-
+        return { userStore, username, password, error_message, login }
     }
 }
 </script>
 
 <style scoped>
-button{
-    width: 100%;
-}
-div.error_message{
-    color: red;
-}
+button{ width: 100%; }
+div.error_message{ color: red; }
 </style>

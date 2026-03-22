@@ -36,13 +36,13 @@
 
 <script>
 import ContentField from '../../components/ContentField.vue'
-import { useStore } from 'vuex';
+import { useUserStore } from '@/store/user'
 import { ref } from 'vue';
 
 export default {
     components: { ContentField },
     setup() {
-        const store = useStore();
+        const userStore = useUserStore();
         let users = ref([]);
         let total_users = 0;
         let current_page = 1;
@@ -69,7 +69,7 @@ export default {
         const pull_page = page => {
             current_page = page;
             fetch(`http://localhost:3000/ranklist/get/?page=${page}`, {
-                headers: { Authorization: "Bearer " + store.state.user.token }
+                headers: { Authorization: "Bearer " + userStore.token }
             })
                 .then(resp => resp.json())
                 .then(res => {
@@ -88,8 +88,5 @@ export default {
 </script>
 
 <style scoped>
-img.record-user-photo {
-    width: 4vh;
-    border-radius: 50%;
-}
+img.record-user-photo { width: 4vh; border-radius: 50%; }
 </style>
