@@ -1,0 +1,228 @@
+# KOB 完整部署：前端 + 三个后端服务 + MySQL + Redis。
+# 密码等配置读取同目录下的 .env（见 .env.example）。
+#
+#   docker compose up -d --build     构建镜像并启动全部服务
+#   docker compose ps                查看状态和健康检查
+#   docker compose logs -f backend   看某个服务的日志
+#   docker compose down              停止（数据保留在 volume 里）
+#
+# 对外只暴露 web 一个端口。启用 HTTPS 叠加 docker-compose.tls.yml；
+# 只想在本机跑中间件、后端用 IDE 启动时叠加 docker-compose.dev.yml。
+
+name: kob
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# 应用容器的通用加固：根文件系统只读、去掉全部 Linux capability、禁止提权
+x-hardened: &hardened
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  stop_grace_period: 30s
+  logging: *logging
+
+services:
+  # ---------- 入口：静态页面 + 反向代理 ----------
+  web:
+    <<: *hardened
+    build:
+      context: ./web
+    image: kob/web:${KOB_VERSION:-latest}
+    ports:
+      - "${WEB_PORT:-80}:8080"
+    networks:
+      - edge
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz | grep -q ok"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 100
+
+  # ---------- 后端 ----------
+  backend:
+    <<: *hardened
+    build:
+      context: ./backendcloud
+      args:
+        MODULE: backend
+    image: kob/backend:${KOB_VERSION:-latest}
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME:-kob}
+      DB_PASSWORD: ${DB_PASSWORD:?请先在 .env 中设置 DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?请先在 .env 中设置 JWT_SECRET}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      MATCHING_SYSTEM_URL: http://matchingsystem:3001
+      BOT_RUNNING_SYSTEM_URL: http://botrunningsystem:3002
+      INTERNAL_ALLOWED_IP: ${INTERNAL_SUBNET:-172.30.238.0/24}
+      # 接口经 nginx 转发后多了 /api 前缀，Cookie 的路径要跟着变
+      COOKIE_PATH: /api/user/account/
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    networks:
+      - edge
+      - services
+      - data
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # 包含数据库和 Redis 的连通性
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    mem_limit: 768m
+    cpus: 1.5
+    pids_limit: 512
+
+  matchingsystem:
+    <<: *hardened
+    build:
+      context: ./backendcloud
+      args:
+        MODULE: matchingsystem
+    image: kob/matchingsystem:${KOB_VERSION:-latest}
+    environment:
+      BACKEND_URL: http://backend:3000
+      INTERNAL_ALLOWED_IP: ${INTERNAL_SUBNET:-172.30.238.0/24}
+    networks:
+      - services
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    mem_limit: 384m
+    cpus: 0.5
+    pids_limit: 256
+
+  # 执行用户提交的代码，是全系统风险最高的服务：
+  # 只接入没有外网出口的内部网络，够不到数据库和 Redis，并限制 CPU、内存和进程数
+  botrunningsystem:
+    <<: *hardened
+    build:
+      context: ./backendcloud
+      args:
+        MODULE: botrunningsystem
+        RUNTIME: jdk
+    image: kob/botrunningsystem:${KOB_VERSION:-latest}
+    environment:
+      BACKEND_URL: http://backend:3000
+      INTERNAL_ALLOWED_IP: ${INTERNAL_SUBNET:-172.30.238.0/24}
+      # 内存主要留给沙箱子进程，服务自身的堆只占一小部分
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=20 -XX:+ExitOnOutOfMemoryError
+    networks:
+      - services
+    tmpfs:
+      # Bot 的编译产物放在这里，容器重启即清空
+      - /tmp:size=128m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3002/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    mem_limit: 1536m
+    cpus: 2.0
+    pids_limit: 1024
+
+  # ---------- 中间件 ----------
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      # 以下变量只在数据目录为空（第一次启动）时生效
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?请先在 .env 中设置 DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: kob
+      # 应用用专门的账号连接，只有 kob 这一个库的权限，不用 root
+      MYSQL_USER: ${DB_USERNAME:-kob}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?请先在 .env 中设置 DB_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    networks:
+      - data
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 第一次启动时自动执行，完成建表
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 60s
+    mem_limit: 1g
+    cpus: 1.0
+    logging: *logging
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    # 设置了 REDIS_PASSWORD 才开启密码校验；开启 AOF，重启后 refresh token 不丢
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy volatile-ttl $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}
+    networks:
+      - data
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a \"$$REDIS_PASSWORD\"} --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+    logging: *logging
+
+networks:
+  # 入口网络：只有 web 和 backend
+  edge:
+  # 服务间调用。internal 表示没有外网出口。
+  # 网段固定下来，是因为内部接口按来源 IP 做白名单（INTERNAL_ALLOWED_IP）：
+  # nginx 转发来的请求走 edge 网络，来源 IP 不在这个网段里，调不到内部接口
+  services:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${INTERNAL_SUBNET:-172.30.238.0/24}
+  # 数据网络：只有 backend 能访问数据库和 Redis
+  data:
+    internal: true
+
+volumes:
+  mysql-data:
+  redis-data:

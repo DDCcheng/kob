@@ -1,0 +1,23 @@
+# 本地开发：只用容器跑 MySQL 和 Redis，后端和前端在本机用 IDE / 命令行启动。
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis
+#
+# 把两个中间件的端口映射到本机（只监听 127.0.0.1）。端口取 .env 里的 DB_PORT 和 REDIS_PORT，
+# 本机运行的 backend 读的是同一份 .env，所以两边自动对得上。
+
+services:
+  mysql:
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+    networks:
+      - dev
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    networks:
+      - dev
+
+networks:
+  # internal 网络上的容器没法映射端口，所以开发时额外接入一个普通网络
+  dev:

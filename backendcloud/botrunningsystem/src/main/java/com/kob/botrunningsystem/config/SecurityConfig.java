@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/bot/add/").access((authentication, context) ->
                                 new AuthorizationDecision(hasIpAddress.matches(context.getRequest())))
+                        .requestMatchers("/actuator/health/**").permitAll() // 容器健康检查
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .anyRequest().authenticated());
 
