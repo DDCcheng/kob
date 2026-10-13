@@ -1,5 +1,6 @@
 package com.kob.botrunningsystem.Utils;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +31,6 @@ public class Bot implements com.kob.botrunningsystem.Utils.BotInterface {
         int y=sy;
         int step=0;
         res.add(new Cell(x,y));
-        System.out.println(steps);
         for(int i=0;i<steps.length();i++){
             int d=steps.charAt(i)-'0';
             x+=dx[d];
@@ -70,15 +70,47 @@ public class Bot implements com.kob.botrunningsystem.Utils.BotInterface {
         for(Cell c:bCells){
             g[c.x][c.y]=1;
         }
+        //对每个能走的方向做一次flood-fill，选走过去以后可达区域最大的那个，
+        //避免钻进被墙和蛇身围住的死胡同
         int [] dx={-1,0,1,0};
         int [] dy={0,1,0,-1};
+        Cell head=aCells.get(aCells.size()-1);
+        int best=0,bestArea=-1;
         for(int i=0;i<4;i++){
-            int x=aCells.get(aCells.size()-1).x+dx[i];
-            int y=aCells.get(aCells.size()-1).y+dy[i];
+            int x=head.x+dx[i];
+            int y=head.y+dy[i];
             if(x>=0&&x<13&&y>=0&&y<14&&g[x][y]==0){
-                return i;
+                int area=floodFill(g,x,y);
+                if(area>bestArea){
+                    bestArea=area;
+                    best=i;
+                }
             }
         }
-        return 0;
+        return best;
+    }
+
+    //从(sx,sy)出发做flood-fill，返回能到达的空格数
+    private int floodFill(int [][] g,int sx,int sy){
+        int [] dx={-1,0,1,0};
+        int [] dy={0,1,0,-1};
+        boolean [][] visited=new boolean[13][14];
+        ArrayDeque<Cell> queue=new ArrayDeque<>();
+        queue.add(new Cell(sx,sy));
+        visited[sx][sy]=true;
+        int area=0;
+        while(!queue.isEmpty()){
+            Cell c=queue.poll();
+            area++;
+            for(int i=0;i<4;i++){
+                int x=c.x+dx[i];
+                int y=c.y+dy[i];
+                if(x>=0&&x<13&&y>=0&&y<14&&g[x][y]==0&&!visited[x][y]){
+                    visited[x][y]=true;
+                    queue.add(new Cell(x,y));
+                }
+            }
+        }
+        return area;
     }
 }
