@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @Component
 public class JwtUtil {
-    public static final long JWT_TTL = 60 * 60 * 1000L * 24 * 14;  // 有效期14天
+    public static final long JWT_TTL = 15 * 60 * 1000L;  // access token有效期15分钟，过期后用refresh token换新
 
     private static String JWT_KEY;  // Base64编码，解码后至少32字节
 

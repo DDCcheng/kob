@@ -2,7 +2,7 @@ package com.kob.backend.consumer;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.kob.backend.consumer.utils.Game;
-import com.kob.backend.consumer.utils.JwtAuthentication;
+import com.kob.backend.service.user.account.WsTicketService;
 import com.kob.backend.mapper.BotMapper;
 import com.kob.backend.mapper.RecordMapper;
 import com.kob.backend.mapper.UserMapper;
@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @Component
-@ServerEndpoint("/websocket/{token}")  // 注意不要以'/'结尾
+@ServerEndpoint("/websocket/{ticket}")  // 注意不要以'/'结尾
 public class WebSocketServer {
 
     public static final ConcurrentHashMap<Integer, WebSocketServer> users = new ConcurrentHashMap<>();
@@ -41,7 +41,7 @@ public class WebSocketServer {
 
     public  static RestTemplate restTemplate;
 
-    public Game game=null;
+    public volatile Game game=null;
 
     private static String addPlayerUrl;
 
@@ -80,34 +80,48 @@ public class WebSocketServer {
         WebSocketServer.restTemplate=restTemplate;
     }
 
+    private static WsTicketService wsTicketService;
+
+    @Autowired
+    public void setWsTicketService(WsTicketService wsTicketService){
+        WebSocketServer.wsTicketService=wsTicketService;
+    }
+
     @OnOpen
-    public void onOpen(Session session, @PathParam("token") String token) throws IOException {//token只是一个代称，不是指token令牌，这时是用户传进来的id
-        // 建立连接
+    public void onOpen(Session session, @PathParam("ticket") String ticket) throws IOException {
+        // 建立连接。URL里带的是一次性票据而不是access token，票据30秒过期且只能用一次
         this.session = session;
-        System.out.println("connected to websocket!");
-        Integer userId= JwtAuthentication.getUserId(token);
-        this.user=userMapper.selectById(userId);
-        if(user!=null){
-            users.put(userId, this);
-        }else {
-            this.session.close();
+        Integer userId = wsTicketService.consume(ticket);
+        this.user = userId == null ? null : userMapper.selectById(userId);
+        if(user==null){
+            session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "invalid ticket"));
+            return;
         }
-        System.out.println(users);
+        users.put(userId, this);
+        System.out.println("connected to websocket: " + userId);
     }
 
     @OnClose
     public void onClose() {
         // 关闭链接
-        System.out.println("disconnected from websocket!");
-        if(this.user!=null){
-            users.remove(this.user.getId());
-
+        if(this.user==null) return;
+        System.out.println("disconnected from websocket: " + this.user.getId());
+        //只移除自己这条连接，避免把同一用户刚建立的新连接删掉
+        if(users.remove(this.user.getId(), this)){
+            try {
+                stopMatching();//断线后退出匹配池，不再被匹配上
+            } catch (Exception e) {
+                System.out.println("stop matching failed: " + e.getMessage());
+            }
         }
     }
 
     public static void startGame(Integer aId, Integer bId,Integer aBotId,Integer bBotId){
         User a=userMapper.selectById(aId), b=userMapper.selectById(bId);
         Bot botA=botMapper.selectById(aBotId), botB=botMapper.selectById(bBotId);
+        //只能用自己的Bot出战，不是自己的就当作亲自出马
+        if(botA!=null&&!botA.getUserId().equals(aId)) botA=null;
+        if(botB!=null&&!botB.getUserId().equals(bId)) botB=null;
         Game game=new Game(13,
                 14,
                 20,
@@ -172,7 +186,9 @@ public class WebSocketServer {
     }
 
 
-    private void move(int direction){
+    private void move(Integer direction){
+        Game game=this.game;
+        if(game==null||direction==null) return;
         if(game.getPlayerA().getId().equals(user.getId())){
             if(game.getPlayerA().getBotId().equals(-1))//-1是人亲自出马
                 game.setNextstepA(direction);
@@ -185,7 +201,7 @@ public class WebSocketServer {
     @OnMessage
     public void onMessage(String message, Session session) {
         // 从Client接收消息
-        System.out.println("receive message");
+        if(this.user==null) return;
         JSONObject data=JSONObject.parseObject(message);
         String event=data.getString("event");
         if("start-matching".equals(event)){

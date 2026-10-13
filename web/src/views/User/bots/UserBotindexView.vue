@@ -135,22 +135,20 @@
 
 <script>
 import { ref, reactive } from 'vue';
-import { API_URL } from '@/config'
+import { apiFetch } from '@/api'
 import { useUserStore } from '@/store/user'
 import { Modal } from 'bootstrap';
 import { VAceEditor } from 'vue3-ace-editor';
-import ace from 'ace-builds';
+// 编辑器用到的模块全部打进自己的包里，运行时不从 CDN 加载第三方脚本
 import 'ace-builds/src-noconflict/mode-c_cpp';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-chrome';
 import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/snippets/c_cpp';
 
 export default {
     components: { VAceEditor },
     setup() {
-        ace.config.set("basePath",
-            "https://cdn.jsdelivr.net/npm/ace-builds@" + ace.version + "/src-noconflict/");
-
         const userStore = useUserStore();
         let bots = ref([]);
 
@@ -158,10 +156,8 @@ export default {
             title: "", description: "", content: "", error_message: ""
         });
 
-        const authHeader = () => ({ Authorization: "Bearer " + userStore.token });
-
         const refresh_bots = () => {
-            fetch(`${API_URL}/user/bot/getlist/`, { headers: authHeader() })
+            apiFetch("/user/bot/getlist/")
                 .then(resp => resp.json())
                 .then(res => { bots.value = res; });
         }
@@ -173,7 +169,7 @@ export default {
             body.append("description", botadd.description);
             body.append("content", botadd.content);
 
-            fetch(`${API_URL}/user/bot/add/`, { method: "POST", headers: authHeader(), body })
+            apiFetch("/user/bot/add/", { method: "POST", body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {
@@ -189,7 +185,7 @@ export default {
         const remove_btn = bot => {
             const body = new URLSearchParams();
             body.append("bot_id", bot.id);
-            fetch(`${API_URL}/user/bot/remove/`, { method: "POST", headers: authHeader(), body })
+            apiFetch("/user/bot/remove/", { method: "POST", body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") refresh_bots();
@@ -204,7 +200,7 @@ export default {
             body.append("description", bot.description);
             body.append("content", bot.content);
 
-            fetch(`${API_URL}/user/bot/update/`, { method: "POST", headers: authHeader(), body })
+            apiFetch("/user/bot/update/", { method: "POST", body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {

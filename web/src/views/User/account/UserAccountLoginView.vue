@@ -32,9 +32,12 @@ export default {
         let password = ref('');
         let error_message = ref('');
 
-        const jwt_token = localStorage.getItem("jwt_token");
-        if (jwt_token) {
-            userStore.updateToken(jwt_token);
+        // 刷新页面后内存里的 access token 没了，用 Cookie 里的 refresh token 换一个新的
+        userStore.refresh().then(ok => {
+            if (!ok) {
+                userStore.update_loadinginfo(false);
+                return;
+            }
             userStore.getinfo({
                 success() {
                     router.push({ name: "home" });
@@ -44,9 +47,7 @@ export default {
                     userStore.update_loadinginfo(false);
                 }
             });
-        } else {
-            userStore.update_loadinginfo(false);
-        }
+        });
 
         const login = () => {
             error_message.value = "";

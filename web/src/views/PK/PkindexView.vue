@@ -7,9 +7,9 @@
 <script>
 import PlayGround from '../../components/PlayGround.vue'
 import { WS_URL } from '@/config'
+import { apiFetch } from '@/api'
 import { onMounted, onUnmounted } from 'vue'
 import { usePkStore } from '@/store/pk'
-import { useUserStore } from '@/store/user'
 import { useRecordStore } from '@/store/record'
 import ResultBoard from '../../components/ResultBoard.vue';
 import MatchGround from '@/components/MatchGround.vue'
@@ -17,21 +17,23 @@ export default {
     components:{ PlayGround, MatchGround, ResultBoard },
     setup() {
         const pkStore = usePkStore();
-        const userStore = useUserStore();
         const recordStore = useRecordStore();
-
-        const socket_url = `${WS_URL}/websocket/${userStore.token}/`;
 
         pkStore.updateLoser("none");
         recordStore.updateIsRecord(false);
 
         let socket = null;
-        onMounted(() => {
+        let unmounted = false;
+        onMounted(async () => {
             pkStore.updateOpponent({
                 username: "我的对手",
                 photo: "https://cdn.acwing.com/media/article/image/2022/08/09/1_1db2488f17-anonymous.png"
             });
-            socket = new WebSocket(socket_url);
+            // URL 会被代理和网关记进日志，所以不放 access token，先换一张 30 秒有效的一次性票据
+            const resp = await apiFetch("/user/account/ws-ticket/", { method: "POST" });
+            if (!resp.ok || unmounted) return;
+            const { ticket } = await resp.json();
+            socket = new WebSocket(`${WS_URL}/websocket/${ticket}/`);
 
             socket.onopen = () => {
                 console.log("connected");
@@ -59,7 +61,8 @@ export default {
             socket.onclose = () => { console.log("disconnected"); }
         })
         onUnmounted(() => {
-            socket.close();
+            unmounted = true;
+            if (socket) socket.close();
             pkStore.updateStatus("matching");
         })
 

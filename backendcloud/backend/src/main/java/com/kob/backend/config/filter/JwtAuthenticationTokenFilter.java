@@ -1,11 +1,9 @@
 package com.kob.backend.config.filter;
 
-import com.kob.backend.mapper.UserMapper;
 import com.kob.backend.pojo.User;
 import com.kob.backend.service.impl.utils.UserDetailsImpl;
 import com.kob.backend.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +19,6 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private UserMapper userMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -44,15 +40,9 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Fetch the user details using the user ID
-        User user = userMapper.selectById(Integer.parseInt(userId));
-        if (user == null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // Create a new UserDetailsImpl object
-        UserDetails userDetails = new UserDetailsImpl(user);
+        // 验签通过就信任token里的用户ID，不再每个请求查一次数据库，这样JWT才是无状态的。
+        // 这里的User只有id，需要用户名、头像等信息的接口自己去查
+        UserDetails userDetails = new UserDetailsImpl(new User(Integer.parseInt(userId), null, null, null, null));
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userDetails, null, null);
 

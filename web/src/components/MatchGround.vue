@@ -34,7 +34,7 @@
 
 <script>
 import { ref } from 'vue'
-import { API_URL } from '@/config'
+import { apiFetch } from '@/api'
 import { useUserStore } from '@/store/user'
 import { usePkStore } from '@/store/pk'
 
@@ -47,6 +47,7 @@ export default {
         let select_bot = ref("-1");
 
         const click_match = () => {
+            if (!pkStore.socket) return;  // 连接还没建立好
             if (match_btn_content.value === "开始匹配") {
                 match_btn_content.value = "取消";
                 pkStore.socket.send(JSON.stringify({ event: "start-matching", bot_id: select_bot.value }));
@@ -60,9 +61,7 @@ export default {
             }
         }
 
-        fetch(`${API_URL}/user/bot/getlist/`, {
-            headers: { Authorization: "Bearer " + userStore.token }
-        })
+        apiFetch("/user/bot/getlist/")
             .then(resp => resp.json())
             .then(res => { bots.value = res; });
 

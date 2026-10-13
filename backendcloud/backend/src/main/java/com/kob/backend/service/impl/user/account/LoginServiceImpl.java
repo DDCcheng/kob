@@ -4,6 +4,7 @@ package com.kob.backend.service.impl.user.account;
 import com.kob.backend.pojo.User;
 import com.kob.backend.service.impl.utils.UserDetailsImpl;
 import com.kob.backend.service.user.account.LoginService;
+import com.kob.backend.service.user.account.RefreshTokenService;
 import com.kob.backend.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +21,9 @@ public class LoginServiceImpl implements LoginService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
     @Override
     public Map<String, String> gettoken(String username, String password) {
 
@@ -34,6 +38,7 @@ public class LoginServiceImpl implements LoginService {
         Map<String,String> map=new HashMap<>();
         map.put("error_message","SUCCESS");
         map.put("token",jwt);
+        map.put("refresh_token",refreshTokenService.create(user.getId()));
         return map;
     }
 }

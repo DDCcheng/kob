@@ -1,8 +1,10 @@
 package com.kob.backend.service.impl.user.account;
 
+import com.kob.backend.mapper.UserMapper;
 import com.kob.backend.pojo.User;
 import com.kob.backend.service.impl.utils.UserDetailsImpl;
 import com.kob.backend.service.user.account.InfoService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,6 +16,10 @@ import java.util.Map;
 
 @Service
 public class InfoServiceImpl implements InfoService {
+
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public Map<String, String> getInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -24,7 +30,11 @@ public class InfoServiceImpl implements InfoService {
                     (UsernamePasswordAuthenticationToken) authentication;
 
             UserDetailsImpl userInfo = (UserDetailsImpl) authenticationToken.getPrincipal();
-            User user = userInfo.getUser();
+            User user = userMapper.selectById(userInfo.getUser().getId());//token里只有id
+            if (user == null) {
+                map.put("error_message", "USER_NOT_FOUND");
+                return map;
+            }
             map.put("error_message", "SUCCESS");
             map.put("id", user.getId().toString());
             map.put("username", user.getUsername());
