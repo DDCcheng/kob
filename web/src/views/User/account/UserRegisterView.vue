@@ -24,6 +24,7 @@
 </template>
 <script>
 import ContentField from '@/components/ContentField.vue'
+import { API_URL } from '@/config'
 import { ref } from 'vue'
 import router from '@/router/index'
 
@@ -43,7 +44,7 @@ export default {
             body.append("password", password.value);
             body.append("confirmPassword", confirmPassword.value);
 
-            fetch("http://localhost:3000/user/account/register/", {
+            fetch(`${API_URL}/user/account/register/`, {
                 method: "POST",
                 body,
             })

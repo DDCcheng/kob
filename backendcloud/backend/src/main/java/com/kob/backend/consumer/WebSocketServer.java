@@ -12,6 +12,7 @@ import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -42,9 +43,22 @@ public class WebSocketServer {
 
     public Game game=null;
 
-    private static final String addPlayerUrl="http://127.0.0.1:3001/player/add/";
+    private static String addPlayerUrl;
 
-    private static final String removePlayerUrl="http://127.0.0.1:3001/player/remove/";
+    private static String removePlayerUrl;
+
+    public static String addBotUrl;
+
+    @Value("${kob.matching-system.url}")
+    public void setMatchingSystemUrl(String url){
+        WebSocketServer.addPlayerUrl=url+"/player/add/";
+        WebSocketServer.removePlayerUrl=url+"/player/remove/";
+    }
+
+    @Value("${kob.bot-running-system.url}")
+    public void setBotRunningSystemUrl(String url){
+        WebSocketServer.addBotUrl=url+"/bot/add/";
+    }
 
     @Autowired
     public void setUserMapper(UserMapper userMapper){

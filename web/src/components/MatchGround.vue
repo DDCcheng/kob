@@ -34,6 +34,7 @@
 
 <script>
 import { ref } from 'vue'
+import { API_URL } from '@/config'
 import { useUserStore } from '@/store/user'
 import { usePkStore } from '@/store/pk'
 
@@ -59,7 +60,7 @@ export default {
             }
         }
 
-        fetch("http://localhost:3000/user/bot/getlist/", {
+        fetch(`${API_URL}/user/bot/getlist/`, {
             headers: { Authorization: "Bearer " + userStore.token }
         })
             .then(resp => resp.json())

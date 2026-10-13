@@ -22,7 +22,7 @@ public class Game extends Thread {
 
     private final static int[] dx={-1,0,1,0};
 
-    private final static int[] dy={0,1,0,1,0};
+    private final static int[] dy={0,1,0,-1};
 
     private final Player playerA,playerB;
 
@@ -35,8 +35,6 @@ public class Game extends Thread {
     private String status="playing";//playing表示正在游戏,over表示游戏结束
 
     private String loser="";//all表示平局,A表示A输
-
-    private final String addBotUrl="http://127.0.0.1:3002/bot/add/";
 
     public  Game(Integer rows, Integer cols,
                  Integer inner_walls_count,
@@ -155,8 +153,8 @@ public class Game extends Thread {
                 me.getSy()+"#("+
                 me.getStepsString()+")#"+
                 you.getSx()+"#"+
-                you.getSy()+"#"+
-                you.getStepsString();
+                you.getSy()+"#("+
+                you.getStepsString()+")";
     }
 
     private void  sendBotCode(Player player){
@@ -165,7 +163,7 @@ public class Game extends Thread {
         data.add("user_id",player.getId().toString());
         data.add("bot_code",player.getBotCode());
         data.add("input",getInput(player));
-        WebSocketServer.restTemplate.postForObject(addBotUrl,data,String.class);
+        WebSocketServer.restTemplate.postForObject(WebSocketServer.addBotUrl,data,String.class);
     }
 
     private boolean nextstep() { //等待两名玩家的下一步操作

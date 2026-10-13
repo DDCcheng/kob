@@ -1,5 +1,6 @@
 package com.kob.matchingsystem.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,7 +16,11 @@ import org.springframework.security.web.util.matcher.IpAddressMatcher;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    IpAddressMatcher hasIpAddress = new IpAddressMatcher("127.0.0.1");
+    private final IpAddressMatcher hasIpAddress;
+
+    public SecurityConfig(@Value("${kob.internal.allowed-ip}") String allowedIp) {
+        this.hasIpAddress = new IpAddressMatcher(allowedIp);
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

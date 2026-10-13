@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { API_URL } from '@/config'
 
 export const useUserStore = defineStore('user', {
     state: () => ({
@@ -35,7 +36,7 @@ export const useUserStore = defineStore('user', {
             body.append("username", data.username);
             body.append("password", data.password);
 
-            fetch("http://localhost:3000/user/account/token/", { method: "POST", body })
+            fetch(`${API_URL}/user/account/token/`, { method: "POST", body })
                 .then(r => r.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {
@@ -50,7 +51,7 @@ export const useUserStore = defineStore('user', {
                 .catch(() => data.error());
         },
         getinfo(data) {
-            fetch("http://localhost:3000/user/account/info/", {
+            fetch(`${API_URL}/user/account/info/`, {
                 headers: { Authorization: "Bearer " + this.token },
             })
                 .then(r => { if (!r.ok) throw new Error(); return r.json(); })

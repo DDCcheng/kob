@@ -48,6 +48,7 @@
 
 <script>
 import ContentField from '../../components/ContentField.vue'
+import { API_URL } from '@/config'
 import { useUserStore } from '@/store/user'
 import { usePkStore } from '@/store/pk'
 import { useRecordStore } from '@/store/record'
@@ -85,7 +86,7 @@ export default {
 
         const pull_page = page => {
             current_page = page;
-            fetch(`http://localhost:3000/record/getlist/?page=${page}`, {
+            fetch(`${API_URL}/record/getlist/?page=${page}`, {
                 headers: { Authorization: "Bearer " + userStore.token }
             })
                 .then(resp => resp.json())

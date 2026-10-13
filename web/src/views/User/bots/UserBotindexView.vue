@@ -135,6 +135,7 @@
 
 <script>
 import { ref, reactive } from 'vue';
+import { API_URL } from '@/config'
 import { useUserStore } from '@/store/user'
 import { Modal } from 'bootstrap';
 import { VAceEditor } from 'vue3-ace-editor';
@@ -160,7 +161,7 @@ export default {
         const authHeader = () => ({ Authorization: "Bearer " + userStore.token });
 
         const refresh_bots = () => {
-            fetch("http://localhost:3000/user/bot/getlist/", { headers: authHeader() })
+            fetch(`${API_URL}/user/bot/getlist/`, { headers: authHeader() })
                 .then(resp => resp.json())
                 .then(res => { bots.value = res; });
         }
@@ -172,7 +173,7 @@ export default {
             body.append("description", botadd.description);
             body.append("content", botadd.content);
 
-            fetch("http://localhost:3000/user/bot/add/", { method: "POST", headers: authHeader(), body })
+            fetch(`${API_URL}/user/bot/add/`, { method: "POST", headers: authHeader(), body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {
@@ -188,7 +189,7 @@ export default {
         const remove_btn = bot => {
             const body = new URLSearchParams();
             body.append("bot_id", bot.id);
-            fetch("http://localhost:3000/user/bot/remove/", { method: "POST", headers: authHeader(), body })
+            fetch(`${API_URL}/user/bot/remove/`, { method: "POST", headers: authHeader(), body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") refresh_bots();
@@ -203,7 +204,7 @@ export default {
             body.append("description", bot.description);
             body.append("content", bot.content);
 
-            fetch("http://localhost:3000/user/bot/update/", { method: "POST", headers: authHeader(), body })
+            fetch(`${API_URL}/user/bot/update/`, { method: "POST", headers: authHeader(), body })
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.error_message === "SUCCESS") {

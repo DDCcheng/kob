@@ -6,6 +6,7 @@
 
 <script>
 import PlayGround from '../../components/PlayGround.vue'
+import { WS_URL } from '@/config'
 import { onMounted, onUnmounted } from 'vue'
 import { usePkStore } from '@/store/pk'
 import { useUserStore } from '@/store/user'
@@ -19,7 +20,7 @@ export default {
         const userStore = useUserStore();
         const recordStore = useRecordStore();
 
-        const socket_url = `ws://localhost:3000/websocket/${userStore.token}/`;
+        const socket_url = `${WS_URL}/websocket/${userStore.token}/`;
 
         pkStore.updateLoser("none");
         recordStore.updateIsRecord(false);
