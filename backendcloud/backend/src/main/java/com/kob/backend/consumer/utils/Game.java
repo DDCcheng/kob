@@ -9,9 +9,29 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class Game extends Thread {
+public class Game {
+    //所有对局共用一个调度线程池，由定时任务按节拍推进，对局在等待时不占用线程
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(
+            Math.max(2, Runtime.getRuntime().availableProcessors()),
+            r -> {
+                Thread thread = new Thread(r, "game-scheduler");
+                thread.setDaemon(true);
+                return thread;
+            });
+
+    private static final long TICK = 500;//节拍，单位毫秒
+
+    private static final int MAX_WAIT_TICKS = 5;//每回合最多等待玩家操作的节拍数
+
+    private static final int MAX_ROUNDS = 1000;
+
+    private int round = 0;
+
     private final Integer rows;
 
     private final Integer cols;
@@ -32,7 +52,7 @@ public class Game extends Thread {
 
     private ReentrantLock lock = new ReentrantLock();
 
-    private String status="playing";//playing表示正在游戏,over表示游戏结束
+    private volatile String status="playing";//playing表示正在游戏,over表示游戏结束
 
     private String loser="";//all表示平局,A表示A输
 
@@ -68,19 +88,29 @@ public class Game extends Thread {
         return playerB;
     }
 
+    private boolean acceptable(Integer direction){//对局进行中，且方向合法
+        return "playing".equals(status)&&direction!=null&&direction>=0&&direction<4;
+    }
+
     public void setNextstepA(Integer nextstepA){
+        if(!acceptable(nextstepA)) return;
         lock.lock();
         try {
-            this.nextstepA=nextstepA;
+            if(this.nextstepA==null){//同一回合先到先得，后到的操作不覆盖
+                this.nextstepA=nextstepA;
+            }
         } finally {
             lock.unlock();
         }
     }
 
     public void setNextstepB(Integer nextstepB){
+        if(!acceptable(nextstepB)) return;
         lock.lock();
         try {
-            this.nextstepB=nextstepB;
+            if(this.nextstepB==null){
+                this.nextstepB=nextstepB;
+            }
         } finally {
             lock.unlock();
         }
@@ -166,33 +196,80 @@ public class Game extends Thread {
         WebSocketServer.restTemplate.postForObject(WebSocketServer.addBotUrl,data,String.class);
     }
 
-    private boolean nextstep() { //等待两名玩家的下一步操作
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        sendBotCode(playerA);
-        sendBotCode(playerB);
-        for(int i=0;i<5;i++){
+    private void schedule(Runnable step){//一个节拍之后执行对局的下一个阶段
+        scheduler.schedule(() -> {
             try {
-                Thread.sleep(500);
-                lock.lock();
-                try {
-                    if(nextstepA!=null&&nextstepB!=null){
-                        playerA.getSteps().add(nextstepA);
-                        playerB.getSteps().add(nextstepB);
-                        return true;
-                    }
-                }finally {
-                    lock.unlock();
-                }
-            } catch (InterruptedException e) {
+                step.run();
+            } catch (Exception e) {//出现意外时按平局结束，不让对局悬在半空
                 e.printStackTrace();
+                if("playing".equals(status)){
+                    status="over";
+                    loser="all";
+                    sendAllMessage("{\"event\":\"result\",\"loser\":\"all\"}");
+                }
             }
+        }, TICK, TimeUnit.MILLISECONDS);
+    }
 
+    public void start(){
+        schedule(this::beginRound);
+    }
+
+    private void beginRound(){//回合开始：把局面发给Bot，然后等待两名玩家的操作
+        for(Player player:List.of(playerA,playerB)){
+            try {
+                sendBotCode(player);
+            } catch (Exception e) {//Bot服务不可用时，这名玩家会因为超时没有操作而判负
+                System.out.println("send bot code failed: "+e.getMessage());
+            }
         }
-        return false;
+        schedule(() -> waitForSteps(1));
+    }
+
+    private void waitForSteps(int tick){//每个节拍检查一次两名玩家的操作是否到齐
+        boolean ready;
+        lock.lock();
+        try {
+            ready=nextstepA!=null&&nextstepB!=null;
+            if(ready){
+                playerA.getSteps().add(nextstepA);
+                playerB.getSteps().add(nextstepB);
+            }
+        }finally {
+            lock.unlock();
+        }
+
+        if(ready){
+            judge();
+            if("playing".equals(status)&&++round>=MAX_ROUNDS){
+                status="over";
+                loser="all";
+            }
+            if("playing".equals(status)){
+                sendMove();
+                schedule(this::beginRound);
+            }else {
+                sendResult();
+            }
+        }else if(tick<MAX_WAIT_TICKS){
+            schedule(() -> waitForSteps(tick+1));
+        }else {//超时，没有操作的一方判负
+            status="over";
+            lock.lock();
+            try {
+                if(nextstepA==null&&nextstepB==null){
+                    loser="all";
+                }
+                else if(nextstepA==null){
+                    loser="A";
+                }else {
+                    loser="B";
+                }
+            }finally {
+                lock.unlock();
+            }
+            sendResult();
+        }
     }
 
     private String getMapString(){
@@ -290,11 +367,11 @@ public class Game extends Thread {
     }
 
     private void sendAllMessage(String msg){
-        if(WebSocketServer.users.get(playerA.getId())!=null){
-            WebSocketServer.users.get(playerA.getId()).sendMessage(msg);
-        }
-        if(WebSocketServer.users.get(playerB.getId())!=null){
-            WebSocketServer.users.get(playerB.getId()).sendMessage(msg);
+        for(Player player:List.of(playerA,playerB)){
+            WebSocketServer client=WebSocketServer.users.get(player.getId());//只取一次，避免判空之后对方刚好断线
+            if(client!=null){
+                client.sendMessage(msg);
+            }
         }
 
     }
@@ -312,39 +389,6 @@ public class Game extends Thread {
             lock.unlock();
         }
 
-    }
-
-
-    @Override
-    public void run() {
-        for(int i=0;i<1000;i++){//最多有1000步，循环1000次就够了
-            if(nextstep()){
-                judge();
-                if(Objects.equals(status, "playing")){
-                    sendMove();
-                }else {
-                    sendResult();
-                    break;
-                }
-            }else {
-                status="over";
-                lock.lock();
-                try {
-                    if(nextstepA==null&&nextstepB==null){
-                        loser="all";
-                    }
-                    else if(nextstepA==null){
-                        loser="A";
-                    }else {
-                        loser="B";
-                    }
-                }finally {
-                    lock.unlock();
-                }
-                sendResult();
-                break;
-            }
-        }
     }
 
 }
